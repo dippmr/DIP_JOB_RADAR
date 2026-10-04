@@ -27,17 +27,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR
-        run: pip install -r requirements.txt
+- name: Install dependencies
+  working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR
+  run: pip install -r requirements.txt
 
-        working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MIN_SCORE: "60"
-          MAX_RESULTS_PER_QUERY: "15"
-          DRY_RUN: "0"
-        run: python -m radar
+- name: Run DIP JOB RADAR
+  working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR
+  env:
+    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    MIN_SCORE: "60"
+    MAX_RESULTS_PER_QUERY: "15"
+    DRY_RUN: "0"
+  run: python -m radar
 
       - name: Commit duplicate database
         run: |
