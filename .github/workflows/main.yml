@@ -28,6 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
+        working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR
         run: pip install -r requirements.txt
 
       - name: Run DIP JOB RADAR
