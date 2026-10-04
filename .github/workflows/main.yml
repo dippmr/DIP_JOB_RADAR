@@ -31,8 +31,7 @@ jobs:
         working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR
         run: pip install -r requirements.txt
 
-      - name: Run DIP JOB RADAR
-        env:
+        working-directory: DIP_JOB_RADAR_FREE/DIP_JOB_RADAR        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           MIN_SCORE: "60"
