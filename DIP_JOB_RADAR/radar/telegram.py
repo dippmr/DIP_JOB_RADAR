@@ -1,42 +1,10 @@
-import requests
 from html import escape
-
-
-def format_job(job, scored) -> str:
-    reasons = ", ".join(scored.reasons[:5]) or "keyword match"
-    negatives = ", ".join(scored.negative_reasons[:3])
-
-    parts = [
-        f"<b>🚨 DIP JOB RADAR — {scored.score}/100</b>",
-        "",
-        f"<b>{escape(job.title)}</b>",
-        f"📍 Ahmedabad",
-        f"🌐 {escape(job.source or 'Web')}",
-        "",
-        f"<b>Why it matched:</b> {escape(reasons)}",
-    ]
-
-    if negatives:
-        parts.append(f"⚠️ <b>Check:</b> {escape(negatives)}")
-
-    parts += [
-        "",
-        f"🔗 <a href=\"{escape(job.url, quote=True)}\">Open job / original post</a>"
-    ]
-
-    return "\n".join(parts)
-
-
-def send_message(bot_token: str, chat_id: str, message: str) -> None:
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    response = requests.post(
-        url,
-        json={
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": False,
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
+import requests
+def format_job(job,scored):
+    reasons="\n".join(f"• {escape(x)}" for x in scored.reasons[:6])
+    warnings=("\n\n⚠️ "+" | ".join(escape(x) for x in scored.negative_reasons[:3])) if scored.negative_reasons else ""
+    return f'🚨 <b>DIP JOB RADAR — {scored.score}/100</b>\n\n<b>{escape(job.title)}</b>\n📍 Ahmedabad\n🌐 {escape(job.source or "Public web result")}\n\n<b>Why it matched</b>\n{reasons or "• Keyword match"}{warnings}\n\n🔗 <a href="{escape(job.url, quote=True)}">Open result</a>'
+def send_message(token,chat_id,text):
+    r=requests.post(f"https://api.telegram.org/bot{token}/sendMessage",json={"chat_id":chat_id,"text":text,"parse_mode":"HTML","disable_web_page_preview":False},timeout=20); r.raise_for_status()
+    data=r.json()
+    if not data.get("ok"): raise RuntimeError(f"Telegram API error: {data}")
