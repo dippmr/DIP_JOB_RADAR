@@ -1,4 +1,45 @@
 {
-  "_instructions": "Add real employer board tokens after verifying the matching jobs.greenhouse.io, jobs.lever.co, or jobs.ashbyhq.com careers URL. Empty boards means ATS discovery is inactive. Do not guess tokens.",
-  "boards": []
+  "_instructions": "Verified employer-hosted board URLs; API responses were not independently tested. Boards are monitored for location and role matches, not guaranteed current vacancies.",
+  "boards": [
+    {
+      "company": "PlayPower Labs",
+      "provider": "ashby",
+      "token": "playpowerlabs"
+    },
+    {
+      "company": "Loopio",
+      "provider": "ashby",
+      "token": "loopio"
+    },
+    {
+      "company": "Valerie Group",
+      "provider": "ashby",
+      "token": "valerie-group"
+    },
+    {
+      "company": "QuillBot",
+      "provider": "greenhouse",
+      "token": "quillbot"
+    },
+    {
+      "company": "Drivetrain",
+      "provider": "lever",
+      "token": "drivetrain"
+    },
+    {
+      "company": "Jobgether",
+      "provider": "lever",
+      "token": "jobgether"
+    },
+    {
+      "company": "HighLevel",
+      "provider": "lever",
+      "token": "gohighlevel"
+    },
+    {
+      "company": "e.l.f. Beauty",
+      "provider": "lever",
+      "token": "elfbeauty"
+    }
+  ]
 }
