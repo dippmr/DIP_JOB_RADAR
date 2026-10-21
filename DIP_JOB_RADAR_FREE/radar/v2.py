@@ -1,4 +1,3 @@
-
 """V2 end-to-end scanner. Start with: python -m radar.v2"""
 from __future__ import annotations
 
@@ -101,18 +100,13 @@ def scan(db, profile, keywords, discovered, *, dry=False):
         # Persist rejected results as well for audit and dashboard review.
         fp = db.record_opportunity(job, score, outcome.verification, rejection, outcome.reasons)
         if rejection:
-    rejected[rejection] = rejected.get(rejection, 0) + 1
-
-    if rejection == "No supported city / India-remote location evidence":
-        if rejected[rejection] <= 15:
-            print(
-                f"[LOCATION REVIEW] "
-                f"{job.company} | {job.title} | "
-                f"Location: {job.location!r} | "
-                f"Source: {job.source}"
-            )
-
-    continue
+            rejected[rejection] = rejected.get(rejection, 0) + 1
+            if rejection == "No supported city / India-remote location evidence" and rejected[rejection] <= 15:
+                print(
+                    f"[LOCATION REVIEW] {job.company} | {job.title} | "
+                    f"Location: {job.location!r} | Source: {job.source}"
+                )
+            continue
         if db.seen(fp) or db.cluster_alerted(job):
             continue
         db.queue_alert(fp)
@@ -196,12 +190,9 @@ def main():
                 db.mark_closed_board_jobs(source_name, current_ids)
         sent = deliver(db, token, chat_id, state, max_alerts=int(os.getenv("MAX_ALERTS_PER_RUN", "12")), dry=dry)
         print(f"[RUN] sources={total}, failures={failed}, unique={unique}, eligible={eligible}, queued={queued}, sent={sent}, rejected={sum(rejected.values())}")
-
-        # NEW: Show detailed rejection reasons in GitHub Actions logs.
         print("[REJECTION BREAKDOWN]")
         for reason, count in sorted(rejected.items(), key=lambda item: item[1], reverse=True):
             print(f"[REJECTED] {count} | {reason}")
-
         if not dry:
             db.record_run(total, failed, unique, eligible, queued)
             if total and failed / total > .5:
