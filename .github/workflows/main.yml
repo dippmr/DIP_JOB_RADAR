@@ -1,8 +1,9 @@
-name: DIP JOB RADAR FREE
+
+name: DIP JOB RADAR V2
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,13 +16,14 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,27 +34,53 @@ jobs:
 
       - name: Install dependencies
         working-directory: DIP_JOB_RADAR_FREE
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
 
-      - name: Run DIP JOB RADAR
+      - name: Test code
+        working-directory: DIP_JOB_RADAR_FREE
+        run: python -m pytest -q
+
+      - name: Scan / deliver
         working-directory: DIP_JOB_RADAR_FREE
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MIN_SCORE: "60"
-          MAX_RESULTS_PER_QUERY: "15"
-          FRESH_WINDOW: "7d"
-          DRY_RUN: "0"
-        run: python -m radar
+          RADAR_STATE_KEY: ${{ secrets.RADAR_STATE_KEY }}
+          DRY_RUN: '0'
+          MIN_SCORE: '65'
+          RSS_ENABLED: '1'
+          RSS_QUERIES_PER_RUN: '12'
+          MAX_RESULTS_PER_QUERY: '12'
+          MAX_ALERTS_PER_RUN: '12'
+          SEND_HEARTBEAT: '1'
+          WEEKLY_REPORT: '1'
+        run: python -m radar.v2
 
-      - name: Commit duplicate database
+      - name: Create consistent state backup
+        if: always()
+        working-directory: DIP_JOB_RADAR_FREE
+        run: python -m radar.backup
+
+      - name: Upload short-lived backup artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-backup-${{ github.run_id }}
+          path: DIP_JOB_RADAR_FREE/tmp/backup/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Commit public history and encrypted private state
         run: |
           git config user.name "DIP JOB RADAR"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add DIP_JOB_RADAR_FREE/data/jobs.sqlite3
+          if test -f DIP_JOB_RADAR_FREE/data/private_state.enc; then
+            git add DIP_JOB_RADAR_FREE/data/private_state.enc
+          fi
           if git diff --cached --quiet; then
-            echo "No database changes."
+            echo "No state changes."
           else
-            git commit -m "Update job radar database"
+            git commit -m "Radar: update scan history and encrypted state"
             git push origin HEAD:main
           fi
