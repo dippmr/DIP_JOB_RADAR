@@ -1,3 +1,4 @@
+
 """V2 end-to-end scanner. Start with: python -m radar.v2"""
 from __future__ import annotations
 
@@ -185,6 +186,12 @@ def main():
                 db.mark_closed_board_jobs(source_name, current_ids)
         sent = deliver(db, token, chat_id, state, max_alerts=int(os.getenv("MAX_ALERTS_PER_RUN", "12")), dry=dry)
         print(f"[RUN] sources={total}, failures={failed}, unique={unique}, eligible={eligible}, queued={queued}, sent={sent}, rejected={sum(rejected.values())}")
+
+        # NEW: Show detailed rejection reasons in GitHub Actions logs.
+        print("[REJECTION BREAKDOWN]")
+        for reason, count in sorted(rejected.items(), key=lambda item: item[1], reverse=True):
+            print(f"[REJECTED] {count} | {reason}")
+
         if not dry:
             db.record_run(total, failed, unique, eligible, queued)
             if total and failed / total > .5:
