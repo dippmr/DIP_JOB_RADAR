@@ -1,0 +1,14 @@
+{
+  "preferred_roles": ["ui/ux designer", "ui designer", "ux designer", "product designer", "visual designer", "interaction designer", "graphic designer"],
+  "skills": ["figma", "ui design", "ux design", "prototyping", "wireframes", "design systems", "graphic design"],
+  "locations": ["ahmedabad", "gandhinagar"],
+  "allow_remote_india": true,
+  "allow_hybrid": true,
+  "max_required_years": 3,
+  "exclude_senior_roles": true,
+  "excluded_companies": [],
+  "salary_min_inr_year": null,
+  "score_threshold": 65,
+  "allow_unverified_rss": false,
+  "max_post_age_days": 21
+}

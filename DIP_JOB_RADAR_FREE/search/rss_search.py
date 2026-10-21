@@ -25,6 +25,13 @@ class SearchResult:
     published: str = ""
     source: str = ""
     query: str = ""  # the search query that found this result
+    company: str = ""
+    location: str = ""
+    apply_url: str = ""
+    provider: str = ""
+    source_kind: str = "rss"
+    external_id: str = ""
+    work_mode: str = ""
 
 
 class GoogleNewsRSS:

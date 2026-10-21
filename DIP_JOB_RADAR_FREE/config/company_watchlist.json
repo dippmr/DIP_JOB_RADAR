@@ -1,0 +1,4 @@
+{
+  "_instructions": "Add real employer board tokens after verifying the matching jobs.greenhouse.io, jobs.lever.co, or jobs.ashbyhq.com careers URL. Empty boards means ATS discovery is inactive. Do not guess tokens.",
+  "boards": []
+}

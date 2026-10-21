@@ -1,148 +1,120 @@
-[README.md](https://github.com/user-attachments/files/33755205/README.md)
-# DIP JOB RADAR
+# DIP JOB RADAR V2
 
-A free, automated job-alert bot for **UI/UX and Product Design roles in Ahmedabad, Gujarat**. It searches public feeds, filters out old or irrelevant posts, removes duplicates, scores relevance, and sends matches to **Telegram**. It runs on **GitHub Actions**, so there is no server and no paid API.
+A Python + GitHub Actions + SQLite + Telegram job-discovery project for Ahmedabad-area UI/UX and design vacancies. V2 retains the original `DIP_JOB_RADAR_FREE/radar/__main__.py` code and existing database, but the **new recommended scanner is `python -m radar.v2`**.
 
----
+> **Deployment status:** All automated tests run without live ATS/Telegram credentials. To receive **verified** job alerts, you must configure real companies in `config/company_watchlist.json`. The watchlist starts empty intentionally; the project does not invent company job-board accounts. RSS leads remain discoverable in the database/dashboard, but are **not sent as verified jobs** by default.
 
-## Features
+## What's new — all 12 planned improvements
 
-- Searches Google News RSS with 46 Ahmedabad-focused design-hiring queries
-- Freshness filter: only posts from the last 7-14 days
-- Ahmedabad location check
-- Relevance scoring against target roles, with exclusions (senior/lead, intern, video-only, motion-only, 3D, architecture, fashion, interior, UX-research-only)
-- SQLite duplicate protection, so the same job is never sent twice
-- Telegram alerts, plus a **daily "alive" message** so silence never means a broken bot
-- Per-run summary log showing where every result was filtered out
-
----
-
-## How it works
-
-| Step | What happens |
-|---|---|
-| 1. Collect | Runs every query against Google News RSS (with a `when:7d` time filter) |
-| 2. Deduplicate | Merges identical results using a title + URL fingerprint |
-| 3. Date filter | Drops results that are old, missing a date, or dated in the future |
-| 4. Seen check | Skips jobs already stored in `data/jobs.sqlite3` |
-| 5. Location | Keeps results that mention Ahmedabad |
-| 6. Score | Scores each job from 0-100 against `config/keywords.json` |
-| 7. Send | Matches at or above `MIN_SCORE` are sent to Telegram and saved to the database |
-| 8. Commit | The updated database is committed back to `main` |
-
----
-
-## Repository structure
-
-```text
-.github/workflows/main.yml     Scheduled workflow (every 15 min + manual run)
-DIP_JOB_RADAR/                 Old Brave Search version (archived, do not edit)
-DIP_JOB_RADAR_FREE/            Current free version
-  config/keywords.json         Target roles, include and exclude keywords
-  radar/__main__.py            Main pipeline
-  radar/database.py            SQLite storage and fingerprints
-  radar/scoring.py             Relevance scoring
-  radar/telegram.py            Telegram formatting and sending
-  search/rss_search.py         Google News RSS searcher and queries
-  tests/                       Tests
-  data/jobs.sqlite3            Duplicate database (committed by the workflow)
-  requirements.txt
-```
-
----
-
-## Setup
-
-1. Create a Telegram bot with **@BotFather** and copy the bot token.
-2. Get your chat ID (message your bot, then check `getUpdates`).
-3. In GitHub: **Settings → Secrets and variables → Actions → New repository secret**, then add:
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
-4. Go to **Actions → DIP JOB RADAR FREE → Run workflow** to test.
-
-> Never commit tokens, chat IDs, or a `.env` file. Secrets belong only in GitHub Actions secrets.
-
----
-
-## Configuration
-
-Set in the workflow's `env` block in `.github/workflows/main.yml`:
-
-| Variable | Default | Purpose |
+| # | Improvement | V2 implementation / important qualification |
 |---|---|---|
-| `MIN_SCORE` | `60` | Minimum score (0-100) to send an alert |
-| `MAX_RESULTS_PER_QUERY` | `15` | Results read per search query |
-| `FRESH_WINDOW` | `7d` | Google News time filter (`1d`, `7d`, `14d`) |
-| `DRY_RUN` | `0` | `1` prints matches only, with no Telegram and no database writes |
+| 1 | Vacancy verification | Rejects courses, search-results pages, non-design roles, excluded seniority and excessive experience requirements. ATS jobs count as published listings, **not** guaranteed available by the time you apply. |
+| 2 | Multi-source search | Public Greenhouse / Lever / Ashby job boards, plus rotating Google News RSS. Company-specific board tokens must be configured. |
+| 3 | Intelligent matching | Explainable, customizable role / skills / location / experience scoring, with hard rejection gates. Rule-based; **no paid AI or invented fit percentage**. |
+| 4 | Company watchlist | `config/company_watchlist.json` with company, provider, board token and optional Lever region. |
+| 5 | Candidate preferences | `config/profile.json`: preferred roles/skills/cities, seniority, remote India, hybrid, excluded employers and alert threshold. Salary floor is a future enhancement; it is **not enforced** without verified salary fields. |
+| 6 | Direct application links | ATS `applyUrl` / `absolute_url`; Telegram shows a link to the listing/application page. |
+| 7 | Dedup + freshness | Stable ATS IDs, company/title/location heuristic across sources, published-date checks when available, discovered timestamps, and `not_seen_on_board` for removed ATS listings. |
+| 8 | Telegram interaction | Save, Interested, Not relevant, Applied buttons. Feedback polling only when `RADAR_STATE_KEY` is configured. Status is encrypted before GitHub commit. |
+| 9 | Job dashboard | Read-only local browser dashboard with filters, scores, source breakdown and (with key) personal status. Not a hosted public app. |
+| 10 | Analytics / weekly report | Source-health history, 7-day counts and Monday Telegram report at/after 09:00 IST. |
+| 11 | Reliability | GitHub tests, 5-attempt notification queue, feed-failure alert, daily heartbeat, encrypted personal state, SQLite consistent backups via GitHub artifact. |
+| 12 | Application prep helper | Generates a real-job-specific checklist, skill review and editable application/follow-up drafts. **No auto-apply and no invented resume credentials.** |
 
-The date filter is set by `MAX_JOB_AGE_DAYS` (14) in `radar/__main__.py`. Target roles and exclusions are in `config/keywords.json`.
+## Quick start
 
----
+1. Unzip, open the `DIP_JOB_RADAR_FREE` folder and install prerequisites:
+   ```bash
+   python -m pip install -r requirements.txt pytest
+   ```
+2. Edit `config/profile.json` to reflect your real target job profile.
+3. Add legitimate company board identifiers to `config/company_watchlist.json`. Example (**replace with verified real employers**):
+   ```json
+   {"boards": [
+     {"company": "Your Confirmed Company", "provider": "greenhouse", "token": "confirmed-board-id", "enabled": true},
+     {"company": "Another Confirmed Company", "provider": "lever", "token": "confirmed-site-id", "enabled": true, "region": "global"},
+     {"company": "Third Confirmed Company", "provider": "ashby", "token": "confirmed-job-board-name", "enabled": true}
+   ]}
+   ```
+   **Do not paste a whole URL** into `token`. For Greenhouse use the segment after `boards.greenhouse.io/` or the actual API board token; Lever uses the site name after `jobs.lever.co/`, and Ashby uses the segment after `jobs.ashbyhq.com/`.
+4. Dry-run without Telegram or writes:
+   ```bash
+   DRY_RUN=1 python -m radar.v2
+   ```
+   On Windows PowerShell: `$env:DRY_RUN='1'; python -m radar.v2`.
+5. Create your Telegram bot via **@BotFather**, start a private conversation with it, then add GitHub **Actions secrets**: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+6. For encrypted Telegram feedback, generate a unique key locally:
+   ```bash
+   python -m radar.keygen
+   ```
+   Add the value as a third GitHub Actions secret: **`RADAR_STATE_KEY`**. Store a backup securely. **If this key is lost, encrypted feedback cannot be recovered.** Never commit the key. Never change it without migrating/encrypting the existing state.
+7. Push the new project to the existing GitHub repository (prefer a backup branch and PR), check `Actions > Radar tests`, then manually run `Actions > DIP JOB RADAR V2 > Run workflow`. Production GitHub Actions uses `DRY_RUN=0`.
 
-## Run locally
+**Important:** Adding the ZIP contents does not change your GitHub repository automatically. You must commit/push the files. Keep the existing database (`data/jobs.sqlite3`) to retain deduplication history.
+
+## Local dashboard and application prep
 
 ```bash
 cd DIP_JOB_RADAR_FREE
-pip install -r requirements.txt
-DRY_RUN=1 python -m radar
+python -m radar.dashboard
+# Open http://127.0.0.1:8765 in your browser
 ```
 
-Create a local `.env` (git-ignored) with the Telegram values only if you test real sending.
+The dashboard is read-only and bound to `127.0.0.1`. To generate a manual application checklist for a particular job, copy its fingerprint from the DB/API and run:
 
----
-
-## Reading the run log
-
-Each run prints one summary line in **Actions → run → Run radar**:
-
-```text
-Queries: 46 | Unique results: 171 | Skipped old/unknown dates: 146 (...) |
-Skipped location: 14 | Skipped duplicates: 0 | Below score 60: 11 | Matches: 0
+```bash
+python -m radar.assistant <fingerprint-prefix> --output my_application_draft.txt
 ```
 
-| Field | Meaning |
-|---|---|
-| Unique results | Results collected after merging duplicates |
-| Skipped old/unknown dates | Results older than the window, or with a missing or invalid date |
-| Skipped location | Results that don't mention Ahmedabad |
-| Skipped duplicates | Jobs already sent before |
-| Below score | Fresh Ahmedabad jobs that scored under `MIN_SCORE` |
-| `[LOW SCORE]` lines | The best near-misses, with score and title |
-| Matches | Alerts sent this run |
+Telegram feedback is only processed by the scheduled scanner with a state key. Do not configure Telegram webhooks or a second bot using `getUpdates` for the same token, or Telegram callbacks may conflict.
 
----
+## Configuration and transparency
 
-## Daily heartbeat
+| Setting | Default | Notes |
+|---|---|---|
+| `DRY_RUN` | `1` locally, `0` in Actions | Preview without persisting or sending |
+| `MIN_SCORE` | `65` | Minimum relevance score, **not** a probability |
+| `RSS_QUERIES_PER_RUN` | `12` | Rotates original 46 queries each scheduled run |
+| `MAX_RESULTS_PER_QUERY` | `12` | RSS read limit |
+| `MAX_ALERTS_PER_RUN` | `12` | Limits Telegram flood |
+| `RSS_ENABLED` | `1` | Set `0` to only use company boards |
+| `SEND_HEARTBEAT` | `1` | Daily after 09:00 IST |
+| `WEEKLY_REPORT` | `1` | Mondays after 09:00 IST |
 
-The first run at or after 9:00 AM IST each day sends a Telegram message: "DIP JOB RADAR is alive", with a short summary of the last run. If it stops arriving, check the Actions tab.
+**Publication date ≠ discovery date.** Lever created timestamps may be available; Greenhouse `updated_at` is intentionally not treated as posting date. ATS jobs without reliable publication date may still be active and eligible; Telegram labels this accurately. Google News dates refer to the RSS story, not necessarily the vacancy.
 
----
+**“Verified ATS listing” only means the listing was returned by a published public board at scan time.** It does not verify the employer's trustworthiness, salary, vacancy eligibility, or that a job remains open indefinitely. Always confirm with the employer before submitting personal information.
 
-## Troubleshooting
+**Deduplication is heuristic across different ATS sources.** Jobs with the same company + title + city are grouped; this may group legitimate multiple openings. A stable ATS posting ID is always retained for source-specific identification.
 
-| Problem | Check |
-|---|---|
-| No runs appearing | The workflow file must start with a valid `on:` block; check Actions for "Invalid workflow file" |
-| Runs are hours apart | GitHub delays scheduled runs on free accounts; this is normal |
-| No alerts for days | Read the summary line: mostly "old" means the source is stale; "below score" means the threshold may be too strict |
-| Telegram error 404 | The bot token secret is wrong or has extra spaces |
-| Telegram error 400 | The chat ID is wrong, or you haven't messaged the bot yet |
-| Database push fails | Workflow needs `permissions: contents: write` |
+**Data privacy:** The original `data/jobs.sqlite3` remains in this *public* GitHub repository and contains URLs, scores and job history visible to anyone. Never store a resume, personal contact details, private compensation expectations, or chat IDs there. Personal feedback/status is only stored in encrypted `data/private_state.enc` when `RADAR_STATE_KEY` is configured. Encryption does not hide metadata such as commit timing or encrypted file size. The local dashboard must not be internet-exposed. For stronger privacy, make your repository **private**.
 
----
+**Notifications:** Alerts are queued in SQLite before being delivered. If Telegram succeeds but the process crashes before marking a message sent, a duplicate alert may occur; Telegram does not provide a general idempotent send key. Failed alerts retry up to five scans.
 
-## Roadmap
+**Costs:** This project doesn't require paid AI APIs. GitHub Actions runtime, artifact retention, and third-party API limits are subject to provider terms and plan limits. Scheduled jobs may be delayed, so 15 minutes is a requested cadence, not a guaranteed arrival time.
 
-- [x] 14-day freshness filter
-- [x] Daily heartbeat message
-- [x] Skip-reason breakdown in logs
-- [ ] Stricter Ahmedabad location verification
-- [ ] Extra sources with real posting dates (job-board feeds, company career pages)
-- [ ] Tune scoring using the `[LOW SCORE]` logs
+## Validation
 
----
+```bash
+cd DIP_JOB_RADAR_FREE
+python -m pytest -q
+python -m radar.backup
+```
 
-## Notes
+The backup is created in `tmp/backup/` and excluded from git. GitHub Actions uploads a short-lived artifact (7 days). The SQL source of truth remains `data/jobs.sqlite3` in git. Private feedback cannot be decrypted without your key.
 
-- Google News indexes news, not job boards, so expect a small number of fresh matches.
-- The repository is public, so the database and code are visible. Keep personal data out of it.
+## Public API documentation
+
+- Greenhouse: https://docs.greenhouse.io/job-board
+- Lever: https://github.com/lever/postings-api
+- Ashby: https://developers.ashbyhq.com/docs/public-job-posting-api
+- Telegram: https://core.telegram.org/bots/api
+
+## Limitations / future enhancements
+
+- ATS coverage is limited to **configured company boards**; do not expect city-wide comprehensive coverage.
+- RSS results are unverified and **not alerted** by default. You can set `allow_unverified_rss` to `true` in `config/profile.json` to receive clearly labeled *leads*, but expect more false positives.
+- Scraping restricted LinkedIn/Indeed/Naukri pages and submitting job applications automatically are deliberately **not implemented**.
+- Salary-based filtering and automatic extraction of unstructured location/experience are not yet reliable enough for mandatory filtering. Check employer descriptions manually.
+- The dashboard is local-only and read-only; feedback actions are taken in Telegram. This prevents accidentally publishing personal application status.
+- AI/LLM scoring is intentionally optional/not implemented; V2 uses transparent rules. An LLM can be integrated later with privacy controls.
