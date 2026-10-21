@@ -140,6 +140,9 @@ def verify_job(job, profile):
         return Verification(False, "Malformed URL", "rejected", years)
     if job.source_kind == "ats" and job.apply_url:
         return Verification(True, "Published individual ATS vacancy", "ats", years)
+    if job.source_kind == "email":
+        # An alert email is never independent verification, even if RSS leads are opted in.
+        return Verification(False, "Job-alert email lead not independently verified", "unverified", years)
     if not any(contains(f"{title} {desc}".lower(), term) for term in HIRING_TOKENS):
         return Verification(False, "No explicit hiring evidence in RSS", "rejected", years)
     if not profile.get("allow_unverified_rss", False):

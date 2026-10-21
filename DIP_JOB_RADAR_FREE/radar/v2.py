@@ -12,10 +12,13 @@ from dotenv import load_dotenv
 from radar.database import RadarDB as JobDB, job_fp
 from radar.dates import date_status
 from radar.matching import evaluate
+from radar.lead_digest import send_lead_digest
 from radar.notify import IST, maybe_send_feed_alert, maybe_send_heartbeat, send_once_per_day
 from radar.private_state import PrivateState
 from radar.telegram_v2 import receive_feedback, send_alert
 from search.ats import fetch_board
+from search.email_alerts import fetch_email_alerts
+from search.platform_discovery import rotate_platform_queries
 from search.rss_search import GoogleNewsRSS, build_queries
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +36,7 @@ def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12, dry
     discovered = []
     total, failed = 0, 0
     successful_boards = []
-    if boards:
+    if boards and os.getenv("ATS_ENABLED", "1") == "1":
         for board in boards:
             if not board.get("enabled", True):
                 continue
@@ -70,6 +73,41 @@ def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12, dry
                 if not dry:
                     db.record_source("google_news_rss", False, type(error).__name__)
                 print(f"[WARN] RSS query {index + 1}: {type(error).__name__}")
+    # Optional site-targeted Google News index queries. This is NOT direct access
+    # to LinkedIn/Naukri/etc; results retain the unverified RSS source kind.
+    if os.getenv("PLATFORM_RSS_ENABLED", "1") == "1":
+        queries = rotate_platform_queries(
+            per_run=min(8, max(0, int(os.getenv("PLATFORM_RSS_QUERIES_PER_RUN", "4"))))
+        )
+        if queries:
+            searcher = GoogleNewsRSS()
+            for platform, query in queries:
+                total += 1
+                try:
+                    jobs = searcher.search(query, limit=min(12, rss_per_query))
+                    discovered.extend(jobs)
+                    if not dry:
+                        db.record_source("platform_rss:" + platform.lower(), True)
+                    print(f"[DISCOVERY] indexed:{platform}: {len(jobs)} RSS leads (unverified)")
+                except Exception as error:
+                    failed += 1
+                    if not dry:
+                        db.record_source("platform_rss:" + platform.lower(), False, type(error).__name__)
+                    print(f"[WARN] indexed:{platform}: {type(error).__name__}")
+    # Optional official alert emails via a private read-only IMAP folder.
+    if os.getenv("JOB_ALERT_EMAIL_ENABLED", "0") == "1":
+        total += 1
+        try:
+            jobs = fetch_email_alerts()
+            discovered.extend(jobs)
+            if not dry:
+                db.record_source("job_alert_email", True)
+            print(f"[DISCOVERY] alert_emails: {len(jobs)} unverified individual-job links")
+        except Exception as error:
+            failed += 1
+            if not dry:
+                db.record_source("job_alert_email", False, type(error).__name__)
+            print(f"[WARN] alert_emails: {type(error).__name__}")
     return discovered, total, failed, successful_boards
 
 
@@ -193,6 +231,16 @@ def main():
         print("[REJECTION BREAKDOWN]")
         for reason, count in sorted(rejected.items(), key=lambda item: item[1], reverse=True):
             print(f"[REJECTED] {count} | {reason}")
+        # Never count unverified email tips as confirmed eligible ATS jobs.
+        if not dry and os.getenv("SEND_EMAIL_LEAD_DIGEST", "0") == "1":
+            try:
+                candidates, leads_sent = send_lead_digest(
+                    db, token, chat_id, discovered, profile,
+                    max_leads=int(os.getenv("MAX_EMAIL_LEADS_PER_RUN", "5")),
+                )
+                print(f"[LEADS] matching_email_tips={candidates}, digest_items_sent={leads_sent} (UNVERIFIED)")
+            except Exception as error:
+                print(f"[WARN] email lead digest: {type(error).__name__}")
         if not dry:
             db.record_run(total, failed, unique, eligible, queued)
             if total and failed / total > .5:
