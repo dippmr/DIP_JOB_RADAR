@@ -1,16 +1,13 @@
 
 name: DIP JOB RADAR FREE
 
-on:
-  workflow_dispatch:
+oon:
   schedule:
-    - cron: "17 * * * *"
-
-permissions:
-  contents: write
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 concurrency:
-  group: dip-job-radar-free
+  group: dip-job-radar
   cancel-in-progress: false
 
 jobs:
