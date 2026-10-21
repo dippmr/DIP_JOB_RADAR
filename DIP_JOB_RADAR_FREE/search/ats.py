@@ -76,6 +76,7 @@ def parse_lever(data, company, token):
             location=location, apply_url=apply_url or detail_url,
             external_id=f"lever:{token}:{item.get('id')}",
             published=_date(item.get("createdAt")),
+            work_mode=str(item.get("workplaceType") or cats.get("workplaceType") or ""),
         )
 
 
@@ -97,6 +98,7 @@ def parse_ashby(data, company, token):
             location=", ".join(filter(None, locations)), apply_url=apply_url,
             external_id=f"ashby:{token}:{item.get('id') or detail_url.rsplit('/', 1)[-1]}",
             published=_date(item.get("publishedAt")),
+            work_mode="remote" if item.get("isRemote") is True else "",
         )
 
 
