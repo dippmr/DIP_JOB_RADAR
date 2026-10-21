@@ -101,8 +101,18 @@ def scan(db, profile, keywords, discovered, *, dry=False):
         # Persist rejected results as well for audit and dashboard review.
         fp = db.record_opportunity(job, score, outcome.verification, rejection, outcome.reasons)
         if rejection:
-            rejected[rejection] = rejected.get(rejection, 0) + 1
-            continue
+    rejected[rejection] = rejected.get(rejection, 0) + 1
+
+    if rejection == "No supported city / India-remote location evidence":
+        if rejected[rejection] <= 15:
+            print(
+                f"[LOCATION REVIEW] "
+                f"{job.company} | {job.title} | "
+                f"Location: {job.location!r} | "
+                f"Source: {job.source}"
+            )
+
+    continue
         if db.seen(fp) or db.cluster_alerted(job):
             continue
         db.queue_alert(fp)
