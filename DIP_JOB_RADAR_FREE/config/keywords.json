@@ -1,10 +1,118 @@
 {
-  "location": {"required": ["ahmedabad", "ahmedabad gujarat", "ahmedabad, gujarat", "ahmedabad city"]},
-  "primary_roles": ["ui designer", "ui/ux designer", "ui ux designer", "ux/ui designer", "junior ui/ux designer", "junior ui ux designer", "visual designer", "interaction designer", "junior product designer", "associate product designer", "product designer"],
-  "bridge_roles": ["graphic designer ui ux", "graphic and ui ux designer", "graphic & ui ux designer", "visual ui designer", "creative ui designer", "web ui designer", "ui designer graphic designer"],
-  "skills": ["figma", "user interface", "user experience", "ui design", "ux design", "wireframe", "wireframes", "prototype", "prototyping", "design system", "responsive design", "mobile app design", "web design", "interaction design", "information architecture", "usability"],
-  "product_signals": ["product design", "digital product", "saas", "mobile app", "web app", "design system", "component library"],
-  "hiring_signals": ["hiring", "we're hiring", "we are hiring", "looking for", "job opening", "job openings", "vacancy", "join our team", "hiring designer", "designer required", "open position", "career opportunity"],
-  "hashtags": ["#hiring", "#hiringdesigner", "#uidesigner", "#uxdesigner", "#uiuxdesigner", "#productdesigner", "#visualdesigner", "#ahmedabadjobs", "#ahmedabad", "#gujaratjobs"],
-  "exclude_terms": ["senior product designer", "senior ux designer", "senior ui designer", "lead designer", "design lead", "design manager", "head of design", "principal designer", "ux researcher", "ux research", "video editor", "motion graphics only", "3d designer", "architectural designer", "fashion designer", "interior designer", "internship", "intern", "trainee"]
+  "location": {
+    "required": [
+      "ahmedabad",
+      "ahmedabad gujarat",
+      "ahmedabad, gujarat",
+      "ahmedabad city"
+    ]
+  },
+  "primary_roles": [
+    "ui designer",
+    "ui/ux designer",
+    "ui ux designer",
+    "ux/ui designer",
+    "junior ui/ux designer",
+    "junior ui ux designer",
+    "visual designer",
+    "interaction designer",
+    "junior product designer",
+    "associate product designer",
+    "product designer"
+  ],
+  "bridge_roles": [
+    "graphic designer ui ux",
+    "graphic and ui ux designer",
+    "graphic & ui ux designer",
+    "visual ui designer",
+    "creative ui designer",
+    "web ui designer",
+    "ui designer graphic designer"
+  ],
+  "skills": [
+    "figma",
+    "user interface",
+    "user experience",
+    "ui design",
+    "ux design",
+    "wireframe",
+    "prototype",
+    "prototyping",
+    "design system",
+    "responsive design",
+    "mobile app design",
+    "web design",
+    "interaction design",
+    "information architecture",
+    "usability"
+  ],
+  "product_signals": [
+    "product design",
+    "digital product",
+    "saas",
+    "mobile app",
+    "web app",
+    "design system",
+    "component library"
+  ],
+  "hiring_signals": [
+    "hiring",
+    "we're hiring",
+    "we are hiring",
+    "looking for",
+    "job opening",
+    "vacancy",
+    "join our team",
+    "hiring designer",
+    "designer required",
+    "open position",
+    "career opportunity"
+  ],
+  "hashtags": [
+    "#hiring",
+    "#hiringdesigner",
+    "#uidesigner",
+    "#uxdesigner",
+    "#uiuxdesigner",
+    "#productdesigner",
+    "#visualdesigner",
+    "#ahmedabadjobs",
+    "#ahmedabad",
+    "#gujaratjobs"
+  ],
+  "exclude_terms": [
+    "senior product designer",
+    "senior ux designer",
+    "senior ui designer",
+    "lead designer",
+    "design lead",
+    "design manager",
+    "head of design",
+    "principal designer",
+    "ux researcher",
+    "ux research",
+    "video editor",
+    "motion graphics only",
+    "3d designer",
+    "architectural designer",
+    "fashion designer",
+    "interior designer",
+    "internship",
+    "intern",
+    "trainee"
+  ],
+  "seniority_terms": [
+    "senior",
+    "lead designer",
+    "lead ui",
+    "lead ux",
+    "lead product designer",
+    "design lead",
+    "ux lead",
+    "ui lead",
+    "design manager",
+    "head of design",
+    "principal",
+    "art director"
+  ]
 }
