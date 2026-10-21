@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from html import unescape
 from urllib.parse import quote
 from xml.etree import ElementTree as ET
+import os
 import re
 import requests
 
@@ -16,12 +17,17 @@ class SearchResult:
 
 class GoogleNewsRSS:
     BASE = "https://news.google.com/rss/search"
+    # Google News time filter: 1h, 1d, 7d, 14d ... Change via env FRESH_WINDOW if needed.
+    FRESH_WINDOW = os.getenv("FRESH_WINDOW", "7d").strip()
+
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "DIP-JOB-RADAR/1.0 (public RSS reader)"})
+
     def search(self, query: str, limit: int = 25) -> list[SearchResult]:
-        url = f"{self.BASE}?q={quote(query)}&hl=en-IN&gl=IN&ceid=IN:en"
+        timed_query = f"{query} when:{self.FRESH_WINDOW}" if self.FRESH_WINDOW else query
+        url = f"{self.BASE}?q={quote(timed_query)}&hl=en-IN&gl=IN&ceid=IN:en"
         r = self.session.get(url, timeout=self.timeout)
         r.raise_for_status()
         root = ET.fromstring(r.content)
