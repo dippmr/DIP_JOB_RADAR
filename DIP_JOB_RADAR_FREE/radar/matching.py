@@ -1,8 +1,16 @@
-"""Explainable job matching after mandatory verification gates."""
+"""Explainable V2 matching against explicit candidate preferences.
+
+Every job must pass verification and location gates before scoring. A score
+never overrides a missing supported location or an excluded senior role.
+"""
 from __future__ import annotations
+
 from dataclasses import dataclass
-from radar.scoring import contains, score_job
-from radar.verification import evaluate_location, verify_job
+
+from radar.scoring import matches
+from radar.verification import (
+    evaluate_location, preferred_role_groups, role_groups, verify_job,
+)
 
 
 @dataclass
@@ -15,36 +23,56 @@ class Match:
     required_years: int | None = None
 
 
+def _candidate_groups(profile, keywords):
+    # A user-specified preference is authoritative. Do not re-enable a job
+    # category via generic keywords if the user removed it from the profile.
+    if "preferred_roles" in profile:
+        return preferred_role_groups(profile["preferred_roles"])
+    return preferred_role_groups(
+        keywords.get("primary_roles", []) + keywords.get("bridge_roles", [])
+    )
+
+
 def evaluate(job, profile, keywords):
     verdict = verify_job(job, profile)
     if not verdict.accepted:
         return Match(False, 0, [], verdict.reason, verdict.confidence, verdict.required_years)
-    fits, loc_reason = evaluate_location(job, profile)
+
+    fits, location_reason = evaluate_location(job, profile)
     if not fits:
-        return Match(False, 0, [], loc_reason, verdict.confidence, verdict.required_years)
-    title = job.title.lower()
-    roles = profile.get("preferred_roles", [])
-    relevant = [r for r in roles if contains(title, r)]
-    if not relevant:
-        # Existing keywords can still recognize uncommon bridge roles.
-        if not any(contains(title, r) for r in keywords.get("primary_roles", []) + keywords.get("bridge_roles", [])):
-            return Match(False, 0, [], "Role not in candidate preferences", verdict.confidence)
-    # Existing score anchors role and skill matching; direct ATS vacancy provides independent evidence.
-    base = score_job(job, keywords).score
-    if job.source_kind == "ats":
-        base = max(base, 46) + 20
-    else:
-        # Do not treat the Ahmedabad-only RSS query as proof of location.
-        base = min(base, 82)
-    skill_matches = [skill for skill in profile.get("skills", []) if contains(job.description.lower(), skill)]
-    score = min(100, base + min(15, len(skill_matches) * 3) + (6 if relevant else 0))
-    reasons = [verdict.reason, loc_reason]
-    if relevant:
-        reasons.append("Preferred role: " + relevant[0])
-    if skill_matches:
-        reasons.append("Skills: " + ", ".join(skill_matches[:5]))
+        return Match(False, 0, [], location_reason, verdict.confidence, verdict.required_years)
+
+    allowed = _candidate_groups(profile, keywords)
+    matched = role_groups(job.title) & allowed
+    if not matched:
+        return Match(False, 0, [], "Role not in candidate preferences", verdict.confidence, verdict.required_years)
+
+    # V2 scoring deliberately does NOT require the word 'Ahmedabad' to appear
+    # in a listing. Verified jobs in Gandhinagar / Remote India are equally
+    # valid. Legacy V1 scoring still exists in radar.scoring separately.
+    description = (job.description or "").lower()
+    # Respect an explicitly configured (even empty) skills preference list.
+    skill_terms = profile["skills"] if "skills" in profile else keywords.get("skills", [])
+    skills = matches(description, skill_terms)
+    product = bool(matches(description, keywords.get("product_signals", [])))
+
+    # Role 35 + valid location 25 + verified ATS vacancy 15 gives 75 points.
+    # RSS with manual opt-in is explicitly less confident: 35 + 25 + 5 = 65.
+    score = 35 + 25 + (15 if job.source_kind == "ats" else 5)
+    score += min(15, 3 * len(skills))
+    if product:
+        score += 5
+    if verdict.required_years is not None and verdict.required_years <= profile.get("max_required_years", 3):
+        score += 3
+    score = min(score, 100)
+
+    reasons = [verdict.reason, location_reason, "Preferred designer role: " + ", ".join(sorted(matched))]
+    if skills:
+        reasons.append("Skills: " + ", ".join(skills[:5]))
     if verdict.required_years is not None:
-        reasons.append(f"Experience requested: {verdict.required_years}+ years")
+        reasons.append(f"Minimum experience: {verdict.required_years} years")
     if job.source_kind == "ats":
-        reasons.append("Apply on company/ATS vacancy page")
+        reasons.append("Apply on employer's public ATS vacancy page")
+    else:
+        reasons.append("RSS: confirm opening on the employer website before applying")
     return Match(True, score, reasons, "", verdict.confidence, verdict.required_years)
