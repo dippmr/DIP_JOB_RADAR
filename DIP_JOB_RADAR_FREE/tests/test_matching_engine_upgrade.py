@@ -15,7 +15,7 @@ PROFILE = json.loads((ROOT / 'config/profile.json').read_text())
 KEYWORDS = json.loads((ROOT / 'config/keywords.json').read_text())
 
 
-def job(title='Graphic Designer', location='Ahmedabad', description='Figma and prototyping',
+def job(title='UI/UX Designer', location='Ahmedabad', description='Figma and prototyping',
         work_mode='', source_kind='ats', apply_url='https://example.com/apply', company='Test'):
     return SearchResult(title, 'https://example.com/jobs/role-123', description,
                         company=company, location=location, work_mode=work_mode,
@@ -27,8 +27,8 @@ class RoleMatchingTests(unittest.TestCase):
         for title in (
             'UI/UX Designer', 'UX/UI Designer', 'UI UX Designer', 'UX-UI Designer',
             'User Experience Designer', 'User Interface Designer',
-            'Associate Product Designer', 'Junior Graphic Designer',
-            'Graphics Designer', 'Visual Designer (Contractor)',
+            'Associate Product Designer', 'Junior Product Designer',
+            'Junior UX Designer', 'Associate UI Designer',
             'Interaction Designer', 'Digital Product Designer',
         ):
             with self.subTest(title=title):
@@ -38,13 +38,24 @@ class RoleMatchingTests(unittest.TestCase):
 
     def test_disallow_non_designer_titles(self):
         for title in ('IT Manager', 'Design Engineer', 'UX Researcher', 'Content Writer',
-                      'Sales Executive', 'Video Editor', 'Product Manager'):
+                      'Sales Executive', 'Video Editor', 'Product Manager',
+                      'UI/UX Developer', 'UX/UI Engineer', 'UI/UX Marketing'):
             with self.subTest(title=title):
                 self.assertFalse(evaluate(job(title=title), PROFILE, KEYWORDS).accepted)
 
+    def test_excluded_graphic_and_visual_roles(self):
+        # Relevant skills do not convert a non-preferred design occupation into UI/UX.
+        for title in ('Graphic Designer', 'Graphics Designer', 'Junior Graphic Designer',
+                      'Graphic Design Executive', 'Visual Designer', 'Creative Designer',
+                      'Brand Designer', 'Social Media Designer', 'Marketing Designer',
+                      'Packaging Designer', 'Graphic Designer UI UX'):
+            with self.subTest(title=title):
+                self.assertFalse(evaluate(job(title=title, description='Figma UX prototyping'),
+                                          PROFILE, KEYWORDS).accepted)
+
     def test_senior_intern_courses_excluded(self):
-        for title in ('Senior Graphic Designer', 'Lead Visual Designer',
-                      'Principal UI Designer', 'Graphic Designer Internship',
+        for title in ('Senior Product Designer', 'Lead UX Designer',
+                      'Principal UI Designer', 'UI/UX Designer Internship',
                       'UI/UX Designer Training Course', 'Design Manager'):
             with self.subTest(title=title):
                 self.assertFalse(evaluate(job(title=title), PROFILE, KEYWORDS).accepted)
@@ -107,7 +118,7 @@ class LocationMatchingTests(unittest.TestCase):
 
     def test_rss_query_city_not_evidence(self):
         lead = job(location='', source_kind='rss', apply_url='', description='We are hiring')
-        lead.query = 'Ahmedabad Graphic Designer hiring'
+        lead.query = 'Ahmedabad UI/UX Designer hiring'
         self.assertFalse(evaluate_location(lead, PROFILE)[0])
 
     def test_remote_generic_requires_india(self):
@@ -127,19 +138,19 @@ class VerificationTests(unittest.TestCase):
     def test_individual_ats_and_safe_links_required(self):
         self.assertFalse(verify_job(job(apply_url=''), PROFILE).accepted)
         self.assertFalse(verify_job(job(), {**PROFILE, 'excluded_companies': ['Test']}).accepted)
-        lead = job(source_kind='rss', apply_url='', description='Hiring graphic designer')
+        lead = job(source_kind='rss', apply_url='', description='Hiring UI/UX designer')
         self.assertFalse(verify_job(lead, PROFILE).accepted)
         self.assertTrue(verify_job(lead, {**PROFILE, 'allow_unverified_rss': True}).accepted)
 
     def test_legacy_scoring_does_not_affect_remote_ats(self):
-        result = evaluate(job(title='Graphic Designer', location='Remote - India', description=''), PROFILE, KEYWORDS)
+        result = evaluate(job(title='Product Designer', location='Remote - India', description=''), PROFILE, KEYWORDS)
         self.assertTrue(result.accepted)
         self.assertGreaterEqual(result.score, 65)
 
 
 class ATSWorkModeTests(unittest.TestCase):
     def test_ashby_is_remote_field_extracted(self):
-        data = {'jobs': [{'id': '1', 'title': 'Visual Designer',
+        data = {'jobs': [{'id': '1', 'title': 'UI Designer',
                          'jobUrl': 'https://jobs.ashbyhq.com/demo/1',
                          'location': 'India', 'isRemote': True}]}
         parsed = list(parse_ashby(data, 'Demo', 'demo'))[0]
@@ -147,7 +158,7 @@ class ATSWorkModeTests(unittest.TestCase):
         self.assertTrue(evaluate(parsed, PROFILE, KEYWORDS).accepted)
 
     def test_lever_workplace_type_extracted(self):
-        data = [{'id': '1', 'text': 'Graphic Designer',
+        data = [{'id': '1', 'text': 'Product Designer',
                  'hostedUrl': 'https://jobs.lever.co/demo/1',
                  'applyUrl': 'https://jobs.lever.co/demo/1/apply',
                  'categories': {'location': 'India'}, 'workplaceType': 'remote'}]
@@ -164,8 +175,9 @@ class ScannerIntegrationTests(unittest.TestCase):
         from unittest.mock import patch
 
         candidates = [
-            job(title='Graphic Designer', location='Gandhinagar', description='Figma'),
-            job(title='Visual Designer', location='India', description='Fully remote role'),
+            job(title='UI/UX Designer', location='Gandhinagar', description='Figma'),
+            job(title='Product Designer', location='India', description='Fully remote role'),
+            job(title='Graphic Designer', location='Ahmedabad', description='Figma and UX research'),
             job(title='Senior Product Designer', location='Ahmedabad'),
         ]
         for idx, candidate in enumerate(candidates):
@@ -176,10 +188,12 @@ class ScannerIntegrationTests(unittest.TestCase):
         try:
             with patch.dict('os.environ', {'MIN_SCORE': '65'}):
                 total, eligible, queued, rejected = scan(db, PROFILE, KEYWORDS, candidates, dry=False)
-            self.assertEqual(total, 3)
+            self.assertEqual(total, 4)
             self.assertEqual(eligible, 2)
             self.assertEqual(queued, 2)
-            self.assertEqual(sum(rejected.values()), 1)
+            self.assertEqual(sum(rejected.values()), 2)
+            self.assertEqual(rejected.get('Excluded occupation'), 1)
+            self.assertEqual(rejected.get('Excluded seniority in vacancy title'), 1)
         finally:
             db.close()
 

@@ -23,7 +23,7 @@ from tests.helpers import real_keywords
 
 
 PROFILE = {
-    "preferred_roles": ["ui/ux designer", "product designer", "graphic designer"],
+    "preferred_roles": ["ui/ux designer", "product designer", "interaction designer"],
     "skills": ["figma", "prototyping"],
     "locations": ["ahmedabad"],
     "allow_remote_india": True, "allow_hybrid": False,

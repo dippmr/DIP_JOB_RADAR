@@ -38,6 +38,12 @@ class PlatformDiscoveryTests(unittest.TestCase):
         text = " ".join(query for _, query in platform_queries())
         for domain in PLATFORMS.values():
             self.assertIn("site:" + domain, text)
+        for city in ('Ahmedabad', 'Gandhinagar', 'remote India'):
+            self.assertIn(city, text)
+        self.assertIn('product designer', text.lower())
+        self.assertIn('ui ux designer', text.lower())
+        self.assertNotIn('graphic designer', text.lower())
+        self.assertNotIn('visual designer', text.lower())
 
     def test_time_based_rotation(self):
         queries = rotate_platform_queries(per_run=4, now=datetime(2026, 10, 21, 10, 0, tzinfo=timezone.utc))
@@ -169,7 +175,7 @@ class ReadOnlyImapTests(unittest.TestCase):
 
 
 class SafeCandidateTests(unittest.TestCase):
-    def lead(self, title="Graphic Designer", location="Ahmedabad", link="https://www.linkedin.com/jobs/view/12345678"):
+    def lead(self, title="UI/UX Designer", location="Ahmedabad", link="https://www.linkedin.com/jobs/view/12345678"):
         return SearchResult(title, link, "", company="", location=location,
                             source_kind="email", source="LinkedIn · email alert (unverified)")
 
@@ -191,9 +197,10 @@ class SafeCandidateTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             db = RadarDB(Path(temp) / "test.sqlite3")
             try:
-                leads = [self.lead(), self.lead(title="Senior Graphic Designer", link="https://www.linkedin.com/jobs/view/99999111"),
+                leads = [self.lead(), self.lead(title="Senior UI/UX Designer", link="https://www.linkedin.com/jobs/view/99999111"),
                          self.lead(location="United States", link="https://www.linkedin.com/jobs/view/11111222")]
                 self.assertEqual(len(reviewable_email_leads(leads, PROFILE)), 1)
+                self.assertEqual(len(reviewable_email_leads([self.lead(title='Graphic Designer')], PROFILE)), 0)
                 with patch("radar.lead_digest.send_message") as send:
                     count, sent = send_lead_digest(db, "token", "chat", leads, PROFILE)
                     self.assertEqual((count, sent), (1, 1))

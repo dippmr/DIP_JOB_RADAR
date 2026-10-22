@@ -2,7 +2,7 @@ import pytest
 import requests
 
 from search import rss_search
-from search.rss_search import GoogleNewsRSS
+from search.rss_search import GoogleNewsRSS, build_queries
 
 FEED = b"""<?xml version="1.0"?>
 <rss><channel>
@@ -84,3 +84,17 @@ def test_does_not_retry_client_errors():
     with pytest.raises(requests.HTTPError):
         searcher.search("q")
     assert searcher.session.calls == 1
+
+
+def test_discovery_queries_match_user_focus_and_locations():
+    queries = build_queries()
+    assert len(queries) == 48 == len(set(queries))
+    whole = " ".join(queries).lower()
+    assert '"ahmedabad"' in whole
+    assert '"gandhinagar"' in whole
+    assert 'remote india' in whole
+    assert '"ui/ux designer"' in whole
+    assert '"product designer"' in whole
+    assert '"interaction designer"' in whole
+    assert "graphic designer" not in whole
+    assert "visual designer" not in whole
