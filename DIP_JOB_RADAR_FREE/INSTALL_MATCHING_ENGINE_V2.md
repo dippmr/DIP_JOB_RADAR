@@ -1,3 +1,5 @@
+> **HISTORICAL DOCUMENT — SUPERSEDED:** For the latest UI/UX + Product Designer-only fix, use `INSTALL_UIUX_PRODUCT_FIX.md` at the repository root. This older guide references a different job-role configuration and test run.
+
 # DIP JOB RADAR V2 — Matching-engine upgrade
 
 This is a **targeted patch**, not a complete project or a replacement database.
