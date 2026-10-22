@@ -1,0 +1,40 @@
+{
+  "_scope": "Manual employer-career pages (not ATS-integrated; NOT automatically scanned or alerted). Pages checked via public web search on 2026-10-22; verify listing remains open before applying.",
+  "pages": [
+    {
+      "company": "Tizora",
+      "title": "UI/UX Designer",
+      "location": "Ahmedabad",
+      "url": "https://www.tizora.ai/careers/ui-ux-designer",
+      "experience": "2-3 years"
+    },
+    {
+      "company": "Tcules",
+      "title": "UX/UI Designer (Generalist)",
+      "location": "Ahmedabad in-office",
+      "url": "https://www.tcules.com/careers",
+      "experience": "not independently confirmed"
+    },
+    {
+      "company": "Vyomco",
+      "title": "UI/UX Designer",
+      "location": "Ahmedabad hybrid / remote India",
+      "url": "https://www.vyomco.com/careers/ui-ux-designer",
+      "experience": "2+ years"
+    },
+    {
+      "company": "TriggrsWeb",
+      "title": "UI/UX Product Designer",
+      "location": "Ahmedabad",
+      "url": "https://www.triggrsweb.com/career",
+      "experience": "2+ years"
+    },
+    {
+      "company": "Radiant Code & Connect",
+      "title": "UI/UX Designer",
+      "location": "Ahmedabad (hybrid/WFH per page)",
+      "url": "https://radiantcodeconnect.com/careers.html",
+      "experience": "0-2 years"
+    }
+  ]
+}

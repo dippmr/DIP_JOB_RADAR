@@ -1,5 +1,5 @@
 {
-  "_instructions": "Verified employer-hosted board URLs; API responses were not independently tested. Boards are monitored for location and role matches, not guaranteed current vacancies.",
+  "_instructions": "Employer-hosted ATS board tokens grounded in public job pages. API endpoints not independently tested here; GitHub will report runtime failures. Disabled boards are retained for optional use. Employer-vacancy and location/experience checks remain mandatory.",
   "boards": [
     {
       "company": "PlayPower Labs",
@@ -7,14 +7,34 @@
       "token": "playpowerlabs"
     },
     {
+      "company": "Tempo Labs",
+      "provider": "ashby",
+      "token": "tempo",
+      "enabled": true,
+      "evidence_job_url": "https://jobs.ashbyhq.com/tempo/d37e806a-9e55-46fe-a681-09957a6d8e4c",
+      "note": "Public Ashby vacancy seen 2026-10-22; API response and current openings require verification at runtime."
+    },
+    {
+      "company": "BJAK",
+      "provider": "ashby",
+      "token": "bjakcareer",
+      "enabled": true,
+      "evidence_job_url": "https://jobs.ashbyhq.com/bjakcareer/5fec0d01-c1bf-47b3-880d-640d0fbbf216",
+      "note": "Public Ashby vacancy seen 2026-10-22; API response and current openings require verification at runtime."
+    },
+    {
       "company": "Loopio",
       "provider": "ashby",
-      "token": "loopio"
+      "token": "loopio",
+      "enabled": false,
+      "note": "Primarily outside target locations; retained for manual re-enable."
     },
     {
       "company": "Valerie Group",
       "provider": "ashby",
-      "token": "valerie-group"
+      "token": "valerie-group",
+      "enabled": false,
+      "note": "No identified India UI/UX or Product Design focus; retained for manual re-enable."
     },
     {
       "company": "QuillBot",
@@ -39,7 +59,9 @@
     {
       "company": "e.l.f. Beauty",
       "provider": "lever",
-      "token": "elfbeauty"
+      "token": "elfbeauty",
+      "enabled": false,
+      "note": "Mostly unrelated roles and geographic coverage; retained for manual re-enable."
     }
   ]
 }
