@@ -24,9 +24,9 @@ def platform_queries() -> list[tuple[str, str]]:
     out = []
     for name, domain in PLATFORMS.items():
         for job_query in (
-            '"Ahmedabad" ("graphic designer" OR "UI UX designer" OR "product designer") hiring',
-            '"Gandhinagar" ("graphic designer" OR "UI UX designer" OR "visual designer") hiring',
-            '("remote India" OR "work from home India") ("graphic designer" OR "UI UX designer" OR "product designer")',
+            '"Ahmedabad" ("UI UX designer" OR "product designer" OR "UX designer") hiring',
+            '"Gandhinagar" ("UI UX designer" OR "UI designer" OR "product designer") hiring',
+            '("remote India" OR "work from home India") ("UI UX designer" OR "product designer" OR "interaction designer")',
         ):
             out.append((name, f"site:{domain} {job_query}"))
     return out

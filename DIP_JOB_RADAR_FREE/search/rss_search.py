@@ -93,41 +93,26 @@ class GoogleNewsRSS:
 
 
 def build_queries() -> list[str]:
-    roles = [
-        "UI Designer",
+    """Rotate only UI/UX and product-design leads across target locations.
+
+    Google News RSS is discovery, not confirmation of an employer vacancy.
+    ATS verification and India-remote eligibility rules still apply.
+    The 48 unique queries form a full circuit across four 12-query runs.
+    """
+    roles = (
         "UI/UX Designer",
-        "Junior UI/UX Designer",
-        "Visual Designer",
-        "Interaction Designer",
-        "Junior Product Designer",
-        "Associate Product Designer",
+        "UI Designer",
+        "UX Designer",
         "Product Designer",
-        "Graphic Designer UI UX",
-        "Graphic and UI UX Designer",
-    ]
-    queries = []
-    for role in roles:
-        queries += [
-            f'"Ahmedabad" "{role}" hiring',
-            f'"Ahmedabad" "{role}" job',
-            f'"Ahmedabad" "{role}" Figma',
-        ]
-    queries += [
-        '"Ahmedabad" "we are hiring" designer',
-        '"Ahmedabad" "we\'re hiring" designer',
-        '"Ahmedabad" "looking for" designer',
-        '"Ahmedabad" "designer required"',
-        '"Ahmedabad" "join our team" designer',
-        '"Ahmedabad" designer Figma hiring',
-        '"Ahmedabad" UI UX hiring',
-        '"Ahmedabad" product designer hiring',
-        '"Ahmedabad" site:linkedin.com/posts designer hiring',
-        '"Ahmedabad" site:linkedin.com/posts "UI/UX Designer"',
-        '"Ahmedabad" site:linkedin.com/posts "Product Designer"',
-        '"Ahmedabad" site:linkedin.com/posts "Visual Designer"',
-        '"Ahmedabad" site:naukri.com UI UX designer',
-        '"Ahmedabad" site:indeed.com UI UX designer',
-        '"Ahmedabad" site:foundit.in UI UX designer',
-        '"Ahmedabad" site:wellfound.com product designer',
-    ]
-    return list(dict.fromkeys(queries))
+        "Junior UI/UX Designer",
+        "Junior Product Designer",
+        "Interaction Designer",
+        "Associate Product Designer",
+    )
+    places = (
+        '"Ahmedabad"',
+        '"Gandhinagar"',
+        '("remote India" OR "work from home India")',
+    )
+    return [f'{place} "{role}" {intent}'
+            for place in places for role in roles for intent in ("hiring", "job")]
