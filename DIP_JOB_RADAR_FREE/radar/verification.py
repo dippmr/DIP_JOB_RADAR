@@ -21,6 +21,9 @@ SENIOR_TITLES = (
     "intern", "internship", "trainee", "apprentice",
 )
 WRONG_TITLES = (
+    "graphic designer", "graphics designer", "graphic design", "graphics design",
+    "brand designer", "social media designer", "packaging designer", "marketing designer",
+    "visual designer", "creative designer",
     "video editor", "motion graphic", "interior designer", "fashion designer",
     "architect", "3d artist", "ux researcher", "design engineer", "design architect",
 )
