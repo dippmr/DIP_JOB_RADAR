@@ -256,7 +256,7 @@ def main():
                 print(f"[WARN] email lead digest: {type(error).__name__}")
         if not dry:
             db.record_run(total, failed, unique, eligible, queued)
-            if total and failed / total > .5:
+            if total and failed / total > .5 and os.getenv("SEND_FEED_ALERT", "1") == "1":
                 maybe_send_feed_alert(db, token, chat_id, failed, total)
             if os.getenv("SEND_HEARTBEAT", "1") == "1":
                 maybe_send_heartbeat(db, token, chat_id, f"{unique} candidates this run, {sent} alerts, {failed}/{total} failed sources")
