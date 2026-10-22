@@ -1,7 +1,30 @@
 {
-  "preferred_roles": ["ui/ux designer", "ui designer", "ux designer", "product designer", "visual designer", "interaction designer", "graphic designer"],
-  "skills": ["figma", "ui design", "ux design", "prototyping", "wireframes", "design systems", "graphic design"],
-  "locations": ["ahmedabad", "gandhinagar"],
+  "preferred_roles": [
+    "ui/ux designer",
+    "ui designer",
+    "ux designer",
+    "product designer",
+    "interaction designer"
+  ],
+  "skills": [
+    "figma",
+    "ui design",
+    "ux design",
+    "user interface",
+    "user experience",
+    "wireframing",
+    "wireframes",
+    "prototyping",
+    "design systems",
+    "user research",
+    "usability testing",
+    "interaction design",
+    "product design"
+  ],
+  "locations": [
+    "ahmedabad",
+    "gandhinagar"
+  ],
   "allow_remote_india": true,
   "allow_hybrid": true,
   "max_required_years": 3,

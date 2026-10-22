@@ -8,26 +8,24 @@
     ]
   },
   "primary_roles": [
-    "ui designer",
     "ui/ux designer",
     "ui ux designer",
     "ux/ui designer",
+    "ui designer",
+    "ux designer",
     "junior ui/ux designer",
-    "junior ui ux designer",
-    "visual designer",
-    "interaction designer",
+    "associate ui/ux designer",
     "junior product designer",
     "associate product designer",
-    "product designer"
+    "product designer",
+    "interaction designer"
   ],
   "bridge_roles": [
-    "graphic designer ui ux",
-    "graphic and ui ux designer",
-    "graphic & ui ux designer",
-    "visual ui designer",
-    "creative ui designer",
-    "web ui designer",
-    "ui designer graphic designer"
+    "ui/ux product designer",
+    "product ui designer",
+    "digital product designer",
+    "mobile app ui designer",
+    "web app ui designer"
   ],
   "skills": [
     "figma",
@@ -36,12 +34,14 @@
     "ui design",
     "ux design",
     "wireframe",
+    "wireframing",
     "prototype",
     "prototyping",
     "design system",
+    "user research",
+    "usability testing",
     "responsive design",
     "mobile app design",
-    "web design",
     "interaction design",
     "information architecture",
     "usability"
@@ -75,7 +75,6 @@
     "#uxdesigner",
     "#uiuxdesigner",
     "#productdesigner",
-    "#visualdesigner",
     "#ahmedabadjobs",
     "#ahmedabad",
     "#gujaratjobs"
@@ -99,7 +98,14 @@
     "interior designer",
     "internship",
     "intern",
-    "trainee"
+    "trainee",
+    "graphic designer",
+    "graphics designer",
+    "graphic design executive",
+    "brand designer",
+    "social media designer",
+    "packaging designer",
+    "marketing designer"
   ],
   "seniority_terms": [
     "senior",
