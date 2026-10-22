@@ -16,6 +16,7 @@ from radar.lead_digest import send_lead_digest
 from radar.notify import IST, maybe_send_feed_alert, maybe_send_heartbeat, send_once_per_day
 from radar.private_state import PrivateState
 from radar.telegram_v2 import receive_feedback, send_alert
+from radar.verification import preferred_role_groups, role_groups
 from search.ats import fetch_board
 from search.email_alerts import fetch_email_alerts
 from search.platform_discovery import rotate_platform_queries
@@ -31,11 +32,18 @@ def configuration():
     return profile, keywords, boards
 
 
-def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12, dry=False):
+def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12,
+            dry=False, preferred_roles=None):
     """Fetch from allowed ATS and rotate through RSS to spread source load."""
     discovered = []
     total, failed = 0, 0
     successful_boards = []
+    # Filter title categories at the ATS discovery stage, without relaxing
+    # the verification/location/experience checks in scan(). None preserves
+    # the original collect() behaviour for existing callers and tests.
+    allowed_groups = (preferred_role_groups(preferred_roles)
+                      if preferred_roles is not None and
+                      os.getenv("ATS_TITLE_PREFILTER", "1") == "1" else None)
     if boards and os.getenv("ATS_ENABLED", "1") == "1":
         for board in boards:
             if not board.get("enabled", True):
@@ -44,11 +52,15 @@ def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12, dry
             name = f"{board.get('provider')}:{board.get('company')}"
             try:
                 jobs = fetch_board(board)
-                discovered.extend(jobs)
+                # Keep the *full board* fingerprints for closed-listing tracking;
+                # only narrow what goes to the matching scanner.
                 successful_boards.append((jobs[0].source if jobs else f"{board['provider'].title()} · {board['company']}", [job_fp(j) for j in jobs]))
+                relevant = ([job for job in jobs if role_groups(job.title) & allowed_groups]
+                            if allowed_groups is not None else jobs)
+                discovered.extend(relevant)
                 if not dry:
                     db.record_source(name, True)
-                print(f"[SOURCE] {name}: {len(jobs)} published listings")
+                print(f"[SOURCE] {name}: {len(jobs)} published listings, {len(relevant)} preferred-role candidates")
             except Exception as error:
                 failed += 1
                 if not dry:
@@ -217,6 +229,7 @@ def main():
             db, boards, rss_enabled=os.getenv("RSS_ENABLED", "1") == "1",
             rss_limit=int(os.getenv("RSS_QUERIES_PER_RUN", "12")),
             rss_per_query=int(os.getenv("MAX_RESULTS_PER_QUERY", "12")), dry=dry,
+            preferred_roles=profile.get("preferred_roles"),
         )
         if total == 0:
             print("[WARN] No sources configured/enabled")
@@ -246,7 +259,7 @@ def main():
             if total and failed / total > .5:
                 maybe_send_feed_alert(db, token, chat_id, failed, total)
             if os.getenv("SEND_HEARTBEAT", "1") == "1":
-                maybe_send_heartbeat(db, token, chat_id, f"{unique} new candidates, {sent} alerts, {failed}/{total} failed sources")
+                maybe_send_heartbeat(db, token, chat_id, f"{unique} candidates this run, {sent} alerts, {failed}/{total} failed sources")
             if os.getenv("WEEKLY_REPORT", "1") == "1":
                 maybe_weekly_report(db, token, chat_id, state)
         return 0

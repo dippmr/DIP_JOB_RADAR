@@ -187,7 +187,15 @@ def evaluate_location(job, profile):
     if location_is_india and description_says_remote:
         # Require explicit work-mode language in description, not just a mention
         # of 'remote teams' or 'remote collaboration' elsewhere.
-        if re.search(r"\b(?:fully\s+remote|remote\s+(?:position|role|job|work)|work\s+(?:remotely|from\s+home)|wfh)\b", description):
+        # Some employer vacancies explicitly say "This role is remote" rather
+        # than "remote role". Require a role/position statement to prevent
+        # incidental wording such as "we collaborate with remote teams".
+        if re.search(
+            r"\b(?:fully\s+remote|remote\s+(?:position|role|job|work)"
+            r"|(?:this|the)\s+(?:role|position|job)\s+is\s+(?:fully\s+)?remote"
+            r"|work\s+(?:remotely|from\s+home)|wfh)\b",
+            description,
+        ):
             return True, "India location and remote work confirmed in vacancy"
     # No specific physical city? Accept only if the text links India eligibility
     # to remote work. Do not consider prose if a different physical city is set.
