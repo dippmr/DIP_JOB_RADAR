@@ -1,9 +1,8 @@
-
 name: DIP JOB RADAR V2
 
+# cron-job.org triggers this workflow every 15 minutes via workflow_dispatch.
+# The original GitHub cron was removed to avoid double scans.
 on:
-  schedule:
-    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -41,6 +40,7 @@ jobs:
         run: python -m pytest -q
 
       - name: Scan / deliver
+        id: radar_scan
         working-directory: DIP_JOB_RADAR_FREE
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -52,9 +52,11 @@ jobs:
           RSS_QUERIES_PER_RUN: '12'
           MAX_RESULTS_PER_QUERY: '12'
           MAX_ALERTS_PER_RUN: '12'
-          SEND_HEARTBEAT: '1'
+          SEND_HEARTBEAT: '0' # Replaced by a Telegram report after every run
           WEEKLY_REPORT: '1'
-        run: python -m radar.v2
+        run: |
+          set -o pipefail
+          python -m radar.v2 | tee /tmp/dip_radar_scan.log
 
       - name: Create consistent state backup
         if: always()
@@ -84,3 +86,79 @@ jobs:
             git commit -m "Radar: update scan history and encrypted state"
             git push origin HEAD:main
           fi
+
+      - name: Notify Telegram after every run
+        if: ${{ always() }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          JOB_STATUS: ${{ job.status }}
+          SCAN_STATUS: ${{ steps.radar_scan.outcome }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are not configured")
+
+          overall = os.environ.get("JOB_STATUS", "unknown").lower()
+          scan_status = os.environ.get("SCAN_STATUS", "unknown").lower()
+          indicator = "✅" if overall == "success" else "❌" if overall == "failure" else "⚠️"
+          now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+          time_text = now_ist.strftime("%d %b %Y, %I:%M %p IST")
+          run_link = (
+              f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/"
+              f"{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/"
+              f"{os.environ.get('GITHUB_RUN_ID', '')}"
+          )
+          lines = [
+              f"{indicator} DIP JOB RADAR V2 — {overall.upper()}",
+              f"🕒 {time_text}",
+              f"🔍 Scan: {scan_status.upper()}",
+          ]
+
+          log_path = Path("/tmp/dip_radar_scan.log")
+          if log_path.exists():
+              summaries = [
+                  line for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+                  if line.startswith("[RUN] ")
+              ]
+              if summaries:
+                  values = dict(re.findall(r"(sources|failures|unique|eligible|queued|sent)=(\d+)", summaries[-1]))
+                  if values:
+                      lines.append(f"📋 Candidates: {values.get('unique', '?')} | Eligible: {values.get('eligible', '?')}")
+                      lines.append(f"🔔 Job alerts sent: {values.get('sent', '?')}")
+                      lines.append(f"🌐 Failed sources: {values.get('failures', '?')}/{values.get('sources', '?')}")
+          if scan_status != "success":
+              lines.append("⚠️ Scan was not completed successfully; see GitHub logs.")
+          lines.append(f"🔗 {run_link}")
+
+          body = json.dumps({
+              "chat_id": chat_id,
+              "text": "\n".join(lines),
+              "disable_web_page_preview": True,
+          }).encode("utf-8")
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=body,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  result = json.load(response)
+              if not result.get("ok"):
+                  raise RuntimeError("Telegram returned ok=false")
+          except Exception as error:
+              # Never print the exception: its URL may include the secret token.
+              print(f"Telegram notification failed: {type(error).__name__}")
+              raise SystemExit(1)
+          print("Telegram notification sent")
+          PY
