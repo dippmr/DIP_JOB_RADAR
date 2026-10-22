@@ -36,7 +36,8 @@ HIRING_TOKENS = (
 # Groups match candidate preferences, not indiscriminately every designer variant.
 # The special UIUX group also recognizes UI UX, UX/UI, and user experience/interface.
 ROLE_PATTERNS = {
-    "uiux": re.compile(r"(?<!\w)(?:ui\s*[/&+\-]\s*ux|ux\s*[/&+\-]\s*ui|ui\s+ux|ux\s+ui)\b", re.I),
+    # Require an actual design occupation; "UI/UX Developer" is not a designer role.
+    "uiux": re.compile(r"(?<!\w)(?:ui\s*[/&+\-]\s*ux|ux\s*[/&+\-]\s*ui|ui\s+ux|ux\s+ui)(?:\s+|[-:]\s*)(?:design(?:er|ers)?|design\s+specialist|specialist)\b", re.I),
     "ui": re.compile(r"(?<!\w)(?:ui|user[ -]interface)\s+(?:design(?:er|ers)?|specialist)\b", re.I),
     "ux": re.compile(r"(?<!\w)(?:ux|user[ -]experience)\s+(?:design(?:er|ers)?|specialist)\b", re.I),
     "product": re.compile(r"(?<!\w)(?:digital\s+)?product\s+(?:designers?|design\s+specialist)\b", re.I),
