@@ -106,7 +106,18 @@ def daily_statistics(db_path, day):
             """SELECT COUNT(*) FROM notification_queue
                WHERE sent_at >= ? AND sent_at < ?""", (a, b)
         ).fetchone()[0]
+        # The review queue is NOT part of the verified-job alert count.
+        leads = []
+        try:
+            leads = [dict(zip(("fingerprint", "title", "company", "location", "url", "reason"), row))
+                     for row in db.execute(
+                         """SELECT fingerprint,title,company,location,url,reason
+                            FROM review_leads WHERE included_in_daily_at IS NULL
+                            ORDER BY first_seen_at DESC LIMIT 5""")]
+        except sqlite3.OperationalError:
+            pass  # backward compatible with pre-V3 databases
     return {
+        "review_leads": leads,
         "completed": completed,
         "reviewed": reviewed,
         "source_failures": source_failures,
@@ -154,8 +165,14 @@ def process(state, *, success, now, run_identifier, send, stats=None, run_link="
         if stats is None:
             print("[MONITOR] Daily summary postponed: no scan database available")
         else:
+            leads = stats.get("review_leads", [])
+            lead_section = ("\n\n🔎 UNVERIFIED leads (manual review):\n" + "\n".join(
+                f"• {item['title'][:65]} — {item['company'][:45] or 'Company unknown'}"
+                f" ({item['location'][:40] or 'location not confirmed'})\n"
+                f"{item['url'][:450]}" for item in leads
+            )) if leads else ""
             txt = (
-                "📊 DIP JOB RADAR V2 — Daily Report (today so far)\n"
+                "📊 DIP JOB RADAR V3 — Daily Report (today so far)\n"
                 f"📅 {now.strftime('%d %b %Y')} (IST)\n"
                 f"✅ Completed scans: {stats['completed']}\n"
                 f"⚠️ Failed workflow runs: {counts['failed']}\n"
@@ -163,7 +180,7 @@ def process(state, *, success, now, run_identifier, send, stats=None, run_link="
                 f"🎯 New eligible jobs discovered: {stats['newly_eligible']}\n"
                 f"🔔 Relevant job alerts sent: {stats['alerts_sent']}\n"
                 f"🌐 Source fetch failures: {stats['source_failures']}\n"
-                f"🔗 {run_link}"
+                f"🔗 {run_link}" + lead_section
             )
             if send(txt):
                 state["last_daily_report_ist"] = today
@@ -198,6 +215,16 @@ def main():
             os.getenv("TELEGRAM_CHAT_ID", "").strip(),
         ), stats=db_stats, run_link=github_run_url(),
     )
+    if "daily summary" in notifications and db_stats and db_stats.get("review_leads"):
+        try:
+            with sqlite3.connect(DB_PATH) as db:
+                db.executemany(
+                    "UPDATE review_leads SET included_in_daily_at=CURRENT_TIMESTAMP WHERE fingerprint=?",
+                    [(lead["fingerprint"],) for lead in db_stats["review_leads"]],
+                )
+                db.commit()
+        except sqlite3.Error as error:
+            print(f"[MONITOR] Cannot update review lead state: {type(error).__name__}")
     write_state(STATE_PATH, state)
     print(f"[MONITOR] scan_success={success} failure_streak={state['consecutive_failures']} "
           f"notifications={','.join(notifications) if notifications else 'none'}")

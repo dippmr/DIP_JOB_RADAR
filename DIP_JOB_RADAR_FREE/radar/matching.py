@@ -56,9 +56,9 @@ def evaluate(job, profile, keywords):
     skills = matches(description, skill_terms)
     product = bool(matches(description, keywords.get("product_signals", [])))
 
-    # Role 35 + valid location 25 + verified ATS vacancy 15 gives 75 points.
+    # Role 35 + valid location 25 + verified employer vacancy 15 gives 75 points.
     # RSS with manual opt-in is explicitly less confident: 35 + 25 + 5 = 65.
-    score = 35 + 25 + (15 if job.source_kind == "ats" else 5)
+    score = 35 + 25 + (15 if job.source_kind in ("ats", "career") else 5)
     score += min(15, 3 * len(skills))
     if product:
         score += 5
@@ -71,8 +71,8 @@ def evaluate(job, profile, keywords):
         reasons.append("Skills: " + ", ".join(skills[:5]))
     if verdict.required_years is not None:
         reasons.append(f"Minimum experience: {verdict.required_years} years")
-    if job.source_kind == "ats":
-        reasons.append("Apply on employer's public ATS vacancy page")
+    if job.source_kind in ("ats", "career"):
+        reasons.append("Role listed on public employer vacancy page")
     else:
         reasons.append("RSS: confirm opening on the employer website before applying")
     return Match(True, score, reasons, "", verdict.confidence, verdict.required_years)

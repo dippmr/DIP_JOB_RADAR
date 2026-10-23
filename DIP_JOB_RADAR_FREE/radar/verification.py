@@ -142,6 +142,14 @@ def verify_job(job, profile):
             return Verification(False, "Unsafe/missing vacancy URL", "rejected", years)
     except (ValueError, TypeError):
         return Verification(False, "Malformed URL", "rejected", years)
+    if job.source_kind == "career" and job.apply_url:
+        return Verification(True, "Live role-specific public employer career page", "employer", years)
+    if job.source_kind == "career_lead":
+        return Verification(False, "Employer careers index: individual role not confirmed", "unverified", years)
+    if job.source_kind == "post":
+        if not any(contains(f"{title} {desc}".lower(), term) for term in HIRING_TOKENS):
+            return Verification(False, "No explicit hiring evidence in post", "rejected", years)
+        return Verification(False, "Hiring post not independently verified", "unverified", years)
     if job.source_kind == "ats" and job.apply_url:
         return Verification(True, "Published individual ATS vacancy", "ats", years)
     if job.source_kind == "email":
@@ -168,7 +176,7 @@ def evaluate_location(job, profile):
         return True, "Preferred city confirmed in employer location"
     # RSS summaries sometimes include city in the vacancy headline or summary,
     # but the search query itself is intentionally excluded from consideration.
-    if job.source_kind == "rss" and any(contains(title + " " + description, city) for city in cities):
+    if job.source_kind in ("rss", "post") and any(contains(title + " " + description, city) for city in cities):
         return True, "City stated in RSS content (not independently verified)"
     if not profile.get("allow_remote_india", False):
         return False, "No supported city / India-remote location evidence"

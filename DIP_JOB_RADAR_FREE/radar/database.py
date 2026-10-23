@@ -139,6 +139,19 @@ CREATE TABLE IF NOT EXISTS scan_runs (
  eligible INTEGER NOT NULL,
  queued INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS review_leads (
+ fingerprint TEXT PRIMARY KEY,
+ title TEXT NOT NULL,
+ company TEXT NOT NULL DEFAULT '',
+ location TEXT NOT NULL DEFAULT '',
+ url TEXT NOT NULL,
+ source TEXT NOT NULL,
+ reason TEXT NOT NULL,
+ first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ included_in_daily_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_review_pending ON review_leads(included_in_daily_at, first_seen_at);
 CREATE TABLE IF NOT EXISTS source_health (
  source TEXT PRIMARY KEY,
  success_count INTEGER NOT NULL DEFAULT 0,
@@ -164,6 +177,10 @@ def job_fp(job):
     """Stable ATS IDs across application URL changes; RSS retains original legacy hash."""
     if job.source_kind == "ats" and job.external_id:
         return hashlib.sha256(job.external_id.encode()).hexdigest()
+    if job.source_kind in ("post", "career_lead"):
+        # One public announcement may contain several distinct vacancies.
+        # Do not change the legacy RSS/ATS URL-only fingerprints.
+        return hashlib.sha256((normalize_url(job.url) + "|" + job.title.lower()).encode()).hexdigest()
     return fingerprint(job.url, job.title)
 
 
@@ -288,6 +305,21 @@ def _v2_stats(self, days=7):
     return out
 
 
+def _record_review_lead(self, job, reason):
+    """Deduplicate unverified leads across runs; never queue as verified alerts."""
+    fp = job_fp(job)
+    self.conn.execute(
+        """INSERT INTO review_leads(fingerprint,title,company,location,url,source,reason)
+           VALUES (?,?,?,?,?,?,?)
+           ON CONFLICT(fingerprint) DO UPDATE SET
+             last_seen_at=CURRENT_TIMESTAMP, reason=excluded.reason,
+             location=excluded.location, company=excluded.company""",
+        (fp, job.title[:180], (job.company or "")[:120],
+         (job.location or "")[:140], job.url[:2200], job.source[:180], reason[:200]),
+    )
+    self.conn.commit()
+
+
 class RadarDB(JobDB):
     """Add V2 tables/methods without changing the legacy JobDB API."""
 
@@ -303,6 +335,7 @@ class RadarDB(JobDB):
     mark_alert_failed = _v2_failed
     record_source = _v2_source
     record_run = _v2_run
+    record_review_lead = _record_review_lead
     list_opportunities = _v2_jobs
     stats = _v2_stats
 

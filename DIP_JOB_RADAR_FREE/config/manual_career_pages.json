@@ -1,5 +1,5 @@
 {
-  "_scope": "Manual employer-career pages (not ATS-integrated; NOT automatically scanned or alerted). Pages checked via public web search on 2026-10-22; verify listing remains open before applying.",
+  "_scope": "Public employer career URLs checked automatically in V3. Every role must be confirmed from fetched page content before verified alert; generic index pages are review-only. URL content freshness checked at runtime.",
   "pages": [
     {
       "company": "Tizora",
@@ -35,6 +35,14 @@
       "location": "Ahmedabad (hybrid/WFH per page)",
       "url": "https://radiantcodeconnect.com/careers.html",
       "experience": "0-2 years"
+    },
+    {
+      "company": "Pixster Studio",
+      "title": "Junior Product Designer",
+      "location": "Ahmedabad",
+      "url": "https://www.pixsterstudio.com/jobs-opening/jr-product-designer",
+      "experience": "0-1 years",
+      "evidence": "Company official job-specific page indexed on 2026-10-23; recheck live page at scan time"
     }
   ]
 }

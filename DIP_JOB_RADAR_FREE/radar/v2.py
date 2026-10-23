@@ -15,6 +15,10 @@ from radar.matching import evaluate
 from radar.lead_digest import send_lead_digest
 from radar.notify import IST, maybe_send_feed_alert, maybe_send_heartbeat, send_once_per_day
 from radar.private_state import PrivateState
+from radar.review import review_reason
+from radar.verification import preferred_role_groups as _preferred_role_groups
+from search.career_pages import fetch_career_pages
+from search.post_parser import expand_rss_hiring_announcements
 from radar.telegram_v2 import receive_feedback, send_alert
 from radar.verification import preferred_role_groups, role_groups
 from search.ats import fetch_board
@@ -33,7 +37,7 @@ def configuration():
 
 
 def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12,
-            dry=False, preferred_roles=None):
+            dry=False, preferred_roles=None, career_pages=None):
     """Fetch from allowed ATS and rotate through RSS to spread source load."""
     discovered = []
     total, failed = 0, 0
@@ -66,6 +70,17 @@ def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12,
                 if not dry:
                     db.record_source(name, False, type(error).__name__)
                 print(f"[WARN] {name}: {type(error).__name__}")
+    if os.getenv("CAREER_PAGES_ENABLED", "1") == "1" and career_pages:
+        career_jobs, ok, errors = fetch_career_pages(career_pages)
+        discovered.extend(career_jobs)
+        total += ok + len(errors)
+        failed += len(errors)
+        if not dry:
+            for page in career_pages:
+                name = "career:" + page.get("company", "unknown")
+                issue = next((error for company, error in errors if company == page.get("company")), None)
+                db.record_source(name, not bool(issue), issue or "")
+        print(f"[CAREER] checked={ok + len(errors)} successful={ok} role_evidence={len(career_jobs)} errors={len(errors)}")
     if rss_enabled:
         queries = build_queries()
         # Deterministic rotation: complete a 48-query circuit in four 15-minute runs.
@@ -120,6 +135,11 @@ def collect(db, boards, *, rss_enabled=True, rss_limit=12, rss_per_query=12,
             if not dry:
                 db.record_source("job_alert_email", False, type(error).__name__)
             print(f"[WARN] alert_emails: {type(error).__name__}")
+    # Split multi-role hiring announcements into independently evaluated roles.
+    # Explicitly preserve unverified classification for ALL parsed announcements.
+    discovered = expand_rss_hiring_announcements(
+        discovered, preferred_role_groups(preferred_roles or [])
+    )
     return discovered, total, failed, successful_boards
 
 
@@ -150,6 +170,9 @@ def scan(db, profile, keywords, discovered, *, dry=False):
         # Persist rejected results as well for audit and dashboard review.
         fp = db.record_opportunity(job, score, outcome.verification, rejection, outcome.reasons)
         if rejection:
+            reason_for_review = review_reason(job, profile)
+            if reason_for_review:
+                db.record_review_lead(job, reason_for_review)
             rejected[rejection] = rejected.get(rejection, 0) + 1
             if rejection == "No supported city / India-remote location evidence" and rejected[rejection] <= 15:
                 print(
@@ -223,13 +246,15 @@ def main():
     try:
         # Private data stored encrypted, never as plaintext in a public GitHub repo.
         state = PrivateState(ROOT / "data/private_state.enc")
-        if not dry and state.cipher:
-            print(f"[FEEDBACK] Processed {receive_feedback(token, chat_id, db, state)} Telegram actions")
+        if not dry:
+            print(f"[TELEGRAM] Processed {receive_feedback(token, chat_id, db, state)} feedback/lead actions")
+        career_pages = json.loads((ROOT / "config/manual_career_pages.json").read_text(
+            encoding="utf-8")).get("pages", [])
         discovered, total, failed, successful_boards = collect(
             db, boards, rss_enabled=os.getenv("RSS_ENABLED", "1") == "1",
             rss_limit=int(os.getenv("RSS_QUERIES_PER_RUN", "12")),
             rss_per_query=int(os.getenv("MAX_RESULTS_PER_QUERY", "12")), dry=dry,
-            preferred_roles=profile.get("preferred_roles"),
+            preferred_roles=profile.get("preferred_roles"), career_pages=career_pages,
         )
         if total == 0:
             print("[WARN] No sources configured/enabled")
